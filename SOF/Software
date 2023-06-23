@@ -1,0 +1,82 @@
+import hashlib
+import random
+import requests
+
+class Cliente:
+    def __init__(self, nombre, direccion, correo):
+        self.nombre = nombre
+        self.direccion = direccion
+        self.correo = correo
+        self.codigo_autenticacion = self.generar_codigo_autenticacion()
+
+    def generar_codigo_autenticacion(self):
+        codigo = str(random.randint(0, 99999999)).zfill(8)
+        return codigo
+
+class ServicioAtencionCliente:
+    def __init__(self):
+        self.clientes = []  # Lista para almacenar los clientes registrados
+        self.api_token = "337930d7af794eb1886dfa14e3a77e9c" 
+        self.api_url = "https://us.sms.api.sinch.com/xms/v1"  
+        self.operadora = "Compañía Telefónica"
+
+    def crear_cliente(self):
+        print("Ingrese los datos del nuevo cliente:")
+        nombre = input("Nombre: ")
+        direccion = input("Dirección: ")
+        correo = input("Correo electrónico: ")
+        celular = input("Número de celular: ") 
+        cliente = Cliente(nombre, direccion, correo)
+        self.clientes.append(cliente)  # Agregar el cliente a la lista de clientes registrados
+        print(f"¡Cliente {nombre} creado exitosamente!")
+
+        # Enviar el código de autenticación por mensaje usando la API de Sinch
+        mensaje = f"Hola {nombre}, tu código de autenticación es: {cliente.codigo_autenticacion}"
+        print("El código de autenticación:", mensaje)
+        self.enviar_mensaje(celular, mensaje)  # Enviar mensaje al número de celular ingresado
+
+    def enviar_mensaje(self, destinatario, mensaje):
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_token}"
+        }
+        data = {
+            "from": "447520650892",  #Tu número de teléfono de Sinch
+            "to": destinatario,
+            "body": mensaje
+        }
+        response = requests.post(f"{self.api_url}/sms", headers=headers, json=data)
+        if response.status_code == 200:
+            print("Mensaje enviado exitosamente.")
+        else:
+            print("Error al enviar el mensaje.")
+
+    def solicitar_autenticacion(self):
+        print("Bienvenido al servicio de atención al cliente.")
+        print("Por favor, proporcione el código de autenticación encriptado del cliente.")
+        codigo_autenticacion = input("Código de autenticación encriptado: ")
+
+        cliente_encontrado = None
+        for cliente in self.clientes:
+            if cliente.codigo_autenticacion == codigo_autenticacion:
+                cliente_encontrado = cliente
+                break
+
+        if cliente_encontrado:
+            print("Autenticación exitosa. Acceso concedido a la información del cliente.")
+            self.ver_datos_cliente(cliente_encontrado)
+        else:
+            print("Autenticación fallida. Código incorrecto.")
+
+    def ver_datos_cliente(self, cliente):
+        print("Datos del cliente:")
+        print("Nombre:", cliente.nombre)
+        print("Dirección:", cliente.direccion)
+        print("Correo electrónico:", cliente.correo)
+
+# Ejemplo de uso
+servicio = ServicioAtencionCliente()
+servicio.crear_cliente()
+
+cliente_existente = Cliente("John Doe", "123 Main St", "johndoe@example.com")
+servicio.solicitar_autenticacion()
