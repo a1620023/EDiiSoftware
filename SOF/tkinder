@@ -1,5 +1,6 @@
 import tkinter as tk
 import random
+from cryptography.fernet import Fernet
 
 class Cliente:
     def __init__(self, nombre, direccion, apellidos, numeroDeCelular):
@@ -25,7 +26,7 @@ class Aplicacion(tk.Tk):
         self.pantalla_actual = "principal"
         self.cliente_actual = None
 
-        self.clave_secreta = "clave_secreta"  # Clave secreta para el cifrado
+        self.clave_secreta = b'clave_secreta'  # Clave secreta para el cifrado
 
         self.crear_pantalla_principal()
 
@@ -35,6 +36,7 @@ class Aplicacion(tk.Tk):
 
         self.ver_productos_button = tk.Button(self, text="Ver Productos", command=self.crear_pantalla_ver_productos, font=("bold"))
         self.ver_productos_button.pack(pady=10, side="top", anchor="center")
+
     def crear_pantalla_ver_productos(self):
         self.pantalla_actual = "productos"
 
@@ -73,18 +75,17 @@ class Aplicacion(tk.Tk):
         self.resumen_label = tk.Label(self, text="Resumen:", font=("bold"), bg="lightblue")
         self.resumen_label.pack()
 
-        resumen_text = f"Modelo de Celular: {self.cliente_actual.productos[-1].modelo_celular}\n"
-        resumen_text += f"Plan Móvil: {self.cliente_actual.productos[-1].plan_movil}\n"
+        nombre_cliente = self.desencriptar_dato(self.cliente_actual.nombre)
+        direccion_cliente = self.desencriptar_dato(self.cliente_actual.direccion)
+        apellidos_cliente = self.desencriptar_dato(self.cliente_actual.apellidos)
+        numero_cliente = self.desencriptar_dato(self.cliente_actual.numeroDeCelular)
 
+        resumen_text = f"Nombre: {nombre_cliente}\nDirección: {direccion_cliente}\nApellidos: {apellidos_cliente}\nNúmero de Celular: {numero_cliente}"
         self.resumen_text_label = tk.Label(self, text=resumen_text, bg="lightblue")
         self.resumen_text_label.pack()
 
         self.regresar_button = tk.Button(self, text="Regresar", command=self.regresar_pantalla_principal, font=("bold"))
         self.regresar_button.pack(pady=5)
-
-    def mostrar_mensaje_error(self, mensaje):
-        error_label = tk.Label(self, text=mensaje, fg="red", font=("bold"), bg="lightblue")
-        error_label.pack()
 
     def crear_pantalla_nuevo_cliente(self):
         self.pantalla_actual = "nuevo_cliente"
@@ -92,167 +93,102 @@ class Aplicacion(tk.Tk):
         self.nuevo_cliente_button.destroy()
         self.ver_productos_button.destroy()
 
-        self.nombre_label = tk.Label(self, text="Nombre :", font=("bold"), bg="lightblue")
+        self.nombre_label = tk.Label(self, text="Nombre:", font=("bold"), bg="lightblue")
         self.nombre_label.pack()
 
-        self.nombre_entry = tk.Entry(self)
+        self.nombre_entry = tk.Entry(self, bg="lightblue")
         self.nombre_entry.pack(pady=5)
-
-        self.apellidos_label = tk.Label(self, text="Apellidos:", font=("bold"), bg="lightblue")
-        self.apellidos_label.pack()
-
-        self.apellidos_entry = tk.Entry(self)
-        self.apellidos_entry.pack(pady=5)
-
-        self.numeroDeCelular_label = tk.Label(self, text="Numero de celular:", font=("bold"), bg="lightblue")
-        self.numeroDeCelular_label.pack()
-
-        self.numeroDeCelular_entry = tk.Entry(self)
-        self.numeroDeCelular_entry.pack(pady=5)
 
         self.direccion_label = tk.Label(self, text="Dirección:", font=("bold"), bg="lightblue")
         self.direccion_label.pack()
 
-        self.direccion_entry = tk.Entry(self)
+        self.direccion_entry = tk.Entry(self, bg="lightblue")
         self.direccion_entry.pack(pady=5)
 
-        self.confirmar_button = tk.Button(self, text="Confirmar", command=self.crear_cliente, font=("bold"), bg="lightblue")
+        self.apellidos_label = tk.Label(self, text="Apellidos:", font=("bold"), bg="lightblue")
+        self.apellidos_label.pack()
+
+        self.apellidos_entry = tk.Entry(self, bg="lightblue")
+        self.apellidos_entry.pack(pady=5)
+
+        self.numero_label = tk.Label(self, text="Número de Celular:", font=("bold"), bg="lightblue")
+        self.numero_label.pack()
+
+        self.numero_entry = tk.Entry(self, bg="lightblue")
+        self.numero_entry.pack(pady=5)
+
+        self.confirmar_button = tk.Button(self, text="Confirmar", command=self.crear_cliente, font=("bold"))
         self.confirmar_button.pack(pady=5)
 
-        self.regresar_button = tk.Button(self, text="Regresar", command=self.regresar_pantalla_principal, font=("bold"), bg="lightblue")
+        self.regresar_button = tk.Button(self, text="Regresar", command=self.regresar_pantalla_principal, font=("bold"))
         self.regresar_button.pack(pady=5)
 
     def crear_cliente(self):
-        nombre = self.nombre_entry.get()
-        apellidos = self.apellidos_entry.get()
-        numero_de_celular = self.numeroDeCelular_entry.get()
-        direccion = self.direccion_entry.get()
+        nombre = self.encriptar_dato(self.nombre_entry.get())
+        direccion = self.encriptar_dato(self.direccion_entry.get())
+        apellidos = self.encriptar_dato(self.apellidos_entry.get())
+        numeroDeCelular = self.encriptar_dato(self.numero_entry.get())
 
-        if nombre and apellidos and numero_de_celular and direccion:
-            self.cliente_actual = Cliente(nombre, direccion, apellidos, numero_de_celular)
+        self.cliente_actual = Cliente(nombre, direccion, apellidos, numeroDeCelular)
+
+        self.nombre_label.destroy()
+        self.nombre_entry.destroy()
+        self.direccion_label.destroy()
+        self.direccion_entry.destroy()
+        self.apellidos_label.destroy()
+        self.apellidos_entry.destroy()
+        self.numero_label.destroy()
+        self.numero_entry.destroy()
+        self.confirmar_button.destroy()
+        self.regresar_button.destroy()
+
+        self.mostrar_mensaje_confirmacion("Cliente creado exitosamente", font=("bold"))
+
+    def regresar_pantalla_principal(self):
+        if self.pantalla_actual == "nuevo_cliente":
             self.nombre_label.destroy()
             self.nombre_entry.destroy()
-            self.apellidos_label.destroy()
-            self.apellidos_entry.destroy()
-            self.numeroDeCelular_label.destroy()
-            self.numeroDeCelular_entry.destroy()
             self.direccion_label.destroy()
             self.direccion_entry.destroy()
+            self.apellidos_label.destroy()
+            self.apellidos_entry.destroy()
+            self.numero_label.destroy()
+            self.numero_entry.destroy()
             self.confirmar_button.destroy()
             self.regresar_button.destroy()
 
-            self.mostrar_codigo_autenticacion()
-        else:
-            # Faltan campos por completar, mostrar mensaje de error
-            self.mostrar_mensaje_error("Por favor, ingrese todos los datos", font=("bold"))
-
-    def mostrar_codigo_autenticacion(self):
-        self.codigo_autenticacion_label = tk.Label(self, text="Código de Autenticación:", font=("bold"), bg="lightblue")
-        self.codigo_autenticacion_label.pack()
-
-        codigo_autenticacion_text = f"{self.cliente_actual.codigo_autenticacion}"
-        self.codigo_autenticacion_text_label = tk.Label(self, text=codigo_autenticacion_text, bg="lightblue")
-        self.codigo_autenticacion_text_label.pack()
-
-        self.regresar_button = tk.Button(self, text="Agregar Plan", command=self.crear_pantalla_seleccion_producto, font=("bold"))
-        self.regresar_button.pack(pady=5)
-        self.regresar_button = tk.Button(self, text="Regresar", command=self.regresar_pantalla_principal, font=("bold"))
-        self.regresar_button.pack(pady=5)
-
-    def crear_pantalla_seleccion_producto(self): 
-        self.pantalla_actual = "seleccion_producto"
-
-        self.modelo_label = tk.Label(self, text="Modelo de Celular:", font=("bold"), bg="lightblue")
-        self.modelo_label.pack()
-
-        self.modelo_entry = tk.Entry(self)
-        self.modelo_entry.pack(pady=5)
-
-        self.plan_label = tk.Label(self, text="Plan Móvil:", font=("bold"), bg="lightblue")
-        self.plan_label.pack()
-
-        self.plan_entry = tk.Entry(self)
-        self.plan_entry.pack(pady=5)
-
-        self.confirmar_button = tk.Button(self, text="Confirmar", command=self.agregar_producto, font=("bold"))
-        self.confirmar_button.pack(pady=5)
-
-        self.regresar_button.destroy()  # Ocultar el botón "Regresar"
-
-        #self.regresar1_button.destroy()  # Ocultar el botón "Agregar Plan"
-
-    def agregar_producto(self):
-        modelo_celular = self.modelo_entry.get()
-        plan_movil = self.plan_entry.get()
-
-        if modelo_celular and plan_movil:
-            producto = Producto(modelo_celular, plan_movil)
-            self.cliente_actual.productos.append(producto)
-
-            self.modelo_label.destroy()
-            self.modelo_entry.destroy()
-            self.plan_label.destroy()
-            self.plan_entry.destroy()
-            self.confirmar_button.destroy()
-           
-
-            self.mostrar_pantalla_resumen()
-        else:
-            # Modelo de celular o plan móvil no ingresados, mostrar mensaje de error
-            self.mostrar_mensaje_error("Por favor, ingrese todos los datos", font=("bold"))
-
-    def mostrar_pantalla_resumen(self):
-        self.pantalla_actual = "resumen"
-
-        self.resumen_label = tk.Label(self, text="Resumen:", font=("bold"), bg="lightblue")
-        self.resumen_label.pack()
-
-        resumen_text = f"Modelo de Celular: {self.cliente_actual.productos[-1].modelo_celular}\n"
-        resumen_text += f"Plan Móvil: {self.cliente_actual.productos[-1].plan_movil}\n"
-
-        self.resumen_text_label = tk.Label(self, text=resumen_text, bg="lightblue")
-        self.resumen_text_label.pack()
-
-        self.regresar_button = tk.Button(self, text="Regresar", command=self.regresar_pantalla_principal, font=("bold"))
-        self.regresar_button.pack(pady=5)
-
-    def regresar_pantalla_principal(self):
-        if self.pantalla_actual == "productos":
+        elif self.pantalla_actual == "productos":
             self.codigo_autenticacion_label.destroy()
             self.codigo_autenticacion_entry.destroy()
             self.confirmar_button.destroy()
             self.regresar_button.destroy()
+
         elif self.pantalla_actual == "resumen":
             self.resumen_label.destroy()
             self.resumen_text_label.destroy()
             self.regresar_button.destroy()
-        elif self.pantalla_actual == "nuevo_cliente":
-            self.nombre_label.destroy()
-            self.nombre_entry.destroy()
-            self.apellidos_label.destroy()
-            self.apellidos_entry.destroy()
-            self.numeroDeCelular_label.destroy()
-            self.numeroDeCelular_entry.destroy()
-            self.direccion_label.destroy()
-            self.direccion_entry.destroy()
-            self.confirmar_button.destroy()
-            self.regresar_button.destroy()
-        elif self.pantalla_actual == "seleccion_producto":
-            self.modelo_label.destroy()
-            self.modelo_entry.destroy()
-            self.plan_label.destroy()
-            self.plan_entry.destroy()
-            self.confirmar_button.destroy()
-            self.regresar_button.destroy()
 
-        self.pantalla_actual = "principal"
+        self.crear_pantalla_principal()
 
-        self.nuevo_cliente_button = tk.Button(self, text="Nuevo Cliente", command=self.crear_pantalla_nuevo_cliente, font=( "bold"))
-        self.nuevo_cliente_button.pack(pady=10)
+    def encriptar_dato(self, dato):
+        f = Fernet(self.clave_secreta)
+        dato_encriptado = f.encrypt(dato.encode())
+        return dato_encriptado.decode()
 
-        self.ver_productos_button = tk.Button(self, text="Ver Productos", command=self.crear_pantalla_ver_productos, font=("bold"))
-        self.ver_productos_button.pack(pady=10)
+    def desencriptar_dato(self, dato_encriptado):
+        f = Fernet(self.clave_secreta)
+        dato_desencriptado = f.decrypt(dato_encriptado.encode())
+        return dato_desencriptado.decode()
 
-if __name__ == "__main__":
-    app = Aplicacion()
-    app.mainloop()
+    def mostrar_mensaje_error(self, mensaje, font):
+        self.mensaje_error_label = tk.Label(self, text=mensaje, font=font, fg="red", bg="lightblue")
+        self.mensaje_error_label.pack(pady=5)
+
+    def mostrar_mensaje_confirmacion(self, mensaje, font):
+        self.mensaje_confirmacion_label = tk.Label(self, text=mensaje, font=font, fg="green", bg="lightblue")
+        self.mensaje_confirmacion_label.pack(pady=5)
+
+
+app = Aplicacion()
+app.mainloop()
+
